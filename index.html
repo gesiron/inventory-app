@@ -1,0 +1,27 @@
+<body>
+  <h1>在庫管理アプリ</h1>
+
+  <h2>新しい商品を追加</h2>
+  <input type="text" id="nameInput" placeholder="商品名">
+  <input type="number" id="priceInput" placeholder="値段（円）">
+  <input type="number" id="stockInput" placeholder="在庫数">
+  <button onclick="addProduct()">追加する</button>
+
+  <table border="1" style="margin: 0 auto; margin-top: 20px;">
+    <thead>
+      <tr>
+        <th>商品名</th>
+        <th>値段（円）</th>
+        <th>在庫数</th>
+        <th>売上数</th>
+        <th>売上金額</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="inventory-body"></tbody>
+  </table>
+
+  <script src="script.js"></script>
+</body>
+
+<p id="totalSalesDisplay">売上合計金額：0 円｜売上個数：0 個</p>
