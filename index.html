@@ -1,13 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>在庫管理アプリ</title>
+  <style>
+    body {
+      font-size: 20px;
+      font-family: sans-serif;
+      line-height: 1.6;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 20px;
+    }
+
+    th, td {
+      padding: 14px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      font-size: 18px;
+      padding: 10px 16px;
+      margin: 6px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      font-size: 18px;
+      padding: 6px;
+      margin: 4px;
+    }
+
+    #totalSalesDisplay {
+      margin-top: 20px;
+      font-weight: bold;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    h1, h2 {
+      text-align: center;
+    }
+
+    table {
+      margin: 20px auto;
+    }
+  </style>
+</head>
 <body>
   <h1>在庫管理アプリ</h1>
 
   <h2>新しい商品を追加</h2>
-  <input type="text" id="nameInput" placeholder="商品名">
-  <input type="number" id="priceInput" placeholder="値段（円）">
-  <input type="number" id="stockInput" placeholder="在庫数">
-  <button onclick="addProduct()">追加する</button>
+  <div style="text-align: center;">
+    <input type="text" id="nameInput" placeholder="商品名">
+    <input type="number" id="priceInput" placeholder="値段（円）">
+    <input type="number" id="stockInput" placeholder="在庫数">
+    <button onclick="addProduct()">追加する</button>
+  </div>
 
-  <table border="1" style="margin: 0 auto; margin-top: 20px;">
+  <table>
     <thead>
       <tr>
         <th>商品名</th>
@@ -21,7 +78,8 @@
     <tbody id="inventory-body"></tbody>
   </table>
 
+  <p id="totalSalesDisplay">売上合計金額：0 円｜売上個数：0 個</p>
+
   <script src="script.js"></script>
 </body>
-
-<p id="totalSalesDisplay">売上合計金額：0 円｜売上個数：0 個</p>
+</html>
