@@ -34,9 +34,8 @@ function renderTable() {
 
 function saveData() {
   const ref = window.firebaseRef('inventory/products');
-  window.firebaseSet(ref, products); // Firebase へ保存
-
-  renderTable(); // 💡 保存後すぐに表示を更新（即時反映を保証）
+  window.firebaseSet(ref, products); // Firebaseに保存
+  renderTable();                     // 表示即時更新
 }
 
 function loadInitialData() {
@@ -102,7 +101,7 @@ function addStock(index) {
   const num = parseInt(amount);
   if (!isNaN(num) && num > 0) {
     product.stock += num;
-    saveData(); // 保存と表示が同時に処理されます
+    saveData();
   } else {
     alert("正しい数値を入力してください");
   }
