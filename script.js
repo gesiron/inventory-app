@@ -33,14 +33,12 @@ function renderTable() {
 }
 
 function saveData() {
-  const db = window.firebaseDB;
-  const ref = window.firebaseRef(db, 'inventory/products');
+  const ref = window.firebaseRef('inventory/products');
   window.firebaseSet(ref, products);
 }
 
 function loadInitialData() {
-  const db = window.firebaseDB;
-  const ref = window.firebaseRef(db, 'inventory/products');
+  const ref = window.firebaseRef('inventory/products');
 
   window.firebaseOnValue(ref, (snapshot) => {
     const data = snapshot.val();
@@ -103,7 +101,7 @@ function addStock(index) {
   if (!isNaN(num) && num > 0) {
     product.stock += num;
     saveData();
-    renderTable(); // ⬅️ 追加：補充後すぐに表示を更新
+    renderTable(); // ⬅️ 表示即更新
   } else {
     alert("正しい数値を入力してください");
   }
