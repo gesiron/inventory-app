@@ -1,102 +1,30 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>在庫管理アプリ</title>
-  <style>
-    body {
-      font-size: 14px;
-      font-family: sans-serif;
-      line-height: 1.6;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-      margin: 20px auto;
-    }
-    th, td {
-      padding: 8px;
-      border: 1px solid #ccc;
-    }
-    button {
-      font-size: 13px;
-      padding: 5px 9px;
-      margin: 4px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    input[type="text"],
-    input[type="number"] {
-      font-size: 13px;
-      padding: 4px;
-      margin: 4px;
-    }
-    #totalSalesDisplay {
-      margin-top: 16px;
-      font-weight: bold;
-      font-size: 13px;
-      text-align: center;
-    }
-    h1, h2 {
-      text-align: center;
-    }
-  </style>
-</head>
-<body>
-  <h1>在庫管理アプリ</h1>
+<!-- Firebase SDK を非モジュールで読み込む -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDJsB49meMEzMelis-KhA9G73yfNMKmcHg",
+    authDomain: "zai-ko-web.firebaseapp.com",
+    databaseURL: "https://zai-ko-web-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "zai-ko-web",
+    storageBucket: "zai-ko-web.firebasestorage.app",
+    messagingSenderId: "553417294794",
+    appId: "1:553417294794:web:ee17380605c20f9177c533"
+  };
 
-  <h2>新しい商品を追加</h2>
-  <div style="text-align: center;">
-    <input type="text" id="nameInput" placeholder="商品名">
-    <input type="number" id="priceInput" placeholder="値段（円）">
-    <input type="number" id="stockInput" placeholder="在庫数">
-    <button onclick="addProduct()">追加する</button>
-  </div>
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-  <table>
-    <thead>
-      <tr>
-        <th>商品名</th>
-        <th>値段（円）</th>
-        <th>在庫数</th>
-        <th>売上数</th>
-        <th>売上金額</th>
-        <th>操作</th>
-      </tr>
-    </thead>
-    <tbody id="inventory-body"></tbody>
-  </table>
-
-  <p id="totalSalesDisplay">売上合計金額：0 円｜売上個数：0 個</p>
-
-  <!-- ☁️ Firebase SDK（先に読み込む） -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDJsB49meMEzMelis-KhA9G73yfNMKmcHg",
-      authDomain: "zai-ko-web.firebaseapp.com",
-      databaseURL: "https://zai-ko-web-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "zai-ko-web",
-      storageBucket: "zai-ko-web.firebasestorage.app",
-      messagingSenderId: "553417294794",
-      appId: "1:553417294794:web:ee17380605c20f9177c533"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    // ✅ script.js から使えるようにグローバル公開
-    window.firebaseDB = db;
-    window.firebaseRef = ref;
-    window.firebaseSet = set;
-    window.firebaseOnValue = onValue;
-  </script>
-
-  <!-- 📦 JavaScript本体（Firebaseのあとに！） -->
-  <script type="module" src="script.js"></script>
-</body>
-</html>
+  // script.js から使えるようにグローバルに登録
+  window.firebaseDB = db;
+  window.firebaseRef = function (db, path) {
+    return db.ref(path);
+  };
+  window.firebaseSet = function (ref, data) {
+    return ref.set(data);
+  };
+  window.firebaseOnValue = function (ref, callback) {
+    return ref.on("value", callback);
+  };
+</script>
+<script src="script.js"></script>
