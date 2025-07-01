@@ -19,6 +19,7 @@ function renderTable() {
       <td>${product.price * product.sold}</td>
       <td>
         <button onclick="sellItem(${index})">売る</button>
+        <button onclick="undoSale(${index})">取消</button>
         <button onclick="addStock(${index})">補充</button>
         <button onclick="returnItem(${index})">返却</button>
         <button onclick="deleteItem(${index})">削除</button><br>
@@ -34,8 +35,8 @@ function renderTable() {
 
 function saveData() {
   const ref = window.firebaseRef('inventory/products');
-  window.firebaseSet(ref, products); // Firebaseに保存
-  renderTable();                     // 表示即時更新
+  window.firebaseSet(ref, products);
+  renderTable();
 }
 
 function loadInitialData() {
@@ -92,6 +93,17 @@ function sellItem(index) {
     saveData();
   } else {
     alert(`${product.name} の在庫がありません`);
+  }
+}
+
+function undoSale(index) {
+  const product = getSortedProducts()[index];
+  if (product.sold > 0) {
+    product.stock++;
+    product.sold--;
+    saveData();
+  } else {
+    alert(`${product.name} はまだ売れていません`);
   }
 }
 
