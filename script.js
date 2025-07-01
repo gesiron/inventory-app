@@ -34,7 +34,9 @@ function renderTable() {
 
 function saveData() {
   const ref = window.firebaseRef('inventory/products');
-  window.firebaseSet(ref, products);
+  window.firebaseSet(ref, products).then(() => {
+    renderTable(); // 🔁 保存後に再描画
+  });
 }
 
 function loadInitialData() {
@@ -100,8 +102,7 @@ function addStock(index) {
   const num = parseInt(amount);
   if (!isNaN(num) && num > 0) {
     product.stock += num;
-    saveData();
-    renderTable(); // ⬅️ 表示即更新
+    saveData(); // ⬅️ 保存後に自動で画面が更新される
   } else {
     alert("正しい数値を入力してください");
   }
@@ -161,4 +162,3 @@ function updateTotalSales() {
 window.addEventListener("DOMContentLoaded", () => {
   loadInitialData();
 });
-
