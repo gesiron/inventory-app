@@ -71,7 +71,7 @@
 
   <p id="totalSalesDisplay">売上合計金額：0 円｜売上個数：0 個</p>
 
-  <!-- ☁️ Firebase SDK（非モジュールで安定動作） -->
+  <!-- ☁️ Firebase SDK（互換モードで安定） -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
   <script>
@@ -88,10 +88,10 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // ✅ script.js から使えるよう関数としてグローバルに登録
+    // ✅ script.js から使えるように関数で公開
     window.firebaseDB = db;
-    window.firebaseRef = function (db, path) {
-      return db.ref(path);
+    window.firebaseRef = function (dbInstance, path) {
+      return dbInstance.ref(path);
     };
     window.firebaseSet = function (ref, data) {
       return ref.set(data);
@@ -105,4 +105,3 @@
   <script src="script.js"></script>
 </body>
 </html>
-
