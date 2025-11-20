@@ -1,175 +1,179 @@
-const products = [];
+// Firebase初期化（あなたのプロジェクト情報に置き換えてください）
+const firebaseConfig = {
+  apiKey: "YOUR_FIREBASE_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const tradesRef = db.collection("trades");
 
-function renderTable() {
-  const body = document.getElementById("inventory-body");
-  body.innerHTML = "";
+// Alpha Vantage APIからETF価格を取得
+async function fetchETFPrice(symbol) {
+  const apiKey = 'XYL4EVSMPCABG61C';
+  const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${apiKey}&outputsize=compact`;
 
-  getSortedProducts().forEach((product, index) => {
-    const row = document.createElement("tr");
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
 
-    if (product.stock === 0) {
-      row.style.backgroundColor = "#ffcccc";
+    if (!data['Time Series (Daily)']) {
+      console.error('データ取得失敗:', data);
+      return null;
     }
 
-    row.innerHTML = `
-      <td>${product.name}</td>
-      <td>${product.price}</td>
-      <td>${product.stock}</td>
-      <td>${product.sold}</td>
-      <td>${product.price * product.sold}</td>
-      <td>
-        <button onclick="sellItem(${index})">売る</button>
-        <button onclick="undoSale(${index})">取消</button>
-        <button onclick="addStock(${index})">補充</button>
-        <button onclick="returnItem(${index})">返却</button>
-        <button onclick="deleteItem(${index})">削除</button><br>
-        <button onclick="moveUp(${index})">↑</button>
-        <button onclick="moveDown(${index})">↓</button>
-      </td>
-    `;
-    body.appendChild(row);
-  });
+    const timeSeries = data['Time Series (Daily)'];
+    const latestDate = Object.keys(timeSeries).sort().pop();
+    const latestClose = timeSeries[latestDate]['4. close'];
 
-  updateTotalSales();
+    return {
+      symbol,
+      date: latestDate,
+      close: parseFloat(latestClose)
+    };
+  } catch (error) {
+    console.error('API呼び出しエラー:', error);
+    return null;
+  }
 }
 
-function saveData() {
-  const ref = window.firebaseRef('inventory/products');
-  window.firebaseSet(ref, products);
-  renderTable();
+// ETF価格を表示する
+async function showPrice() {
+  const symbol = document.getElementById("symbolInput").value.trim().toUpperCase();
+  const result = await fetchETFPrice(symbol);
+
+  if (result) {
+    document.getElementById("priceResult").innerText =
+      `${result.symbol} の最新価格（${result.date}）: ${result.close} USD`;
+  } else {
+    document.getElementById("priceResult").innerText = "価格の取得に失敗しました。";
+  }
 }
 
-function loadInitialData() {
-  const ref = window.firebaseRef('inventory/products');
+const tradePoints = { GLD: [], SPXL: [] };
 
-  window.firebaseOnValue(ref, (snapshot) => {
-    const data = snapshot.val();
-    if (data && Array.isArray(data)) {
-      products.length = 0;
-      products.push(...data);
-      renderTable();
-    } else {
-      console.warn("クラウドに商品データがありません");
-    }
-  });
-}
+// 売買ポイントを追加・更新
+async function addOrUpdateTradePoint() {
+  const course = document.getElementById("courseSelect").value;
+  const date = document.getElementById("tradeDate").value;
+  const type = document.getElementById("tradeType").value;
+  const amount = parseFloat(document.getElementById("tradeAmount").value);
 
-function getSortedProducts() {
-  return products.slice().sort((a, b) => a.order - b.order);
-}
-
-function addProduct() {
-  const name = document.getElementById("nameInput").value;
-  const price = parseInt(document.getElementById("priceInput").value);
-  const stock = parseInt(document.getElementById("stockInput").value);
-
-  if (!name || isNaN(price) || isNaN(stock)) {
+  if (!course || !date || !type || isNaN(amount)) {
     alert("すべての項目を正しく入力してください");
     return;
   }
 
-  const maxOrder = products.length > 0 ? Math.max(...products.map(p => p.order)) : 0;
+  const docId = `${course}_${date}`;
+  const priceData = await fetchETFPrice(course);
+  const price = priceData ? priceData.close : null;
 
-  products.push({
-    name,
-    price,
-    stock,
-    sold: 0,
-    order: maxOrder + 1
+  if (price === null) {
+    alert("価格取得に失敗しました。");
+    return;
+  }
+
+  await tradesRef.doc(docId).set({ course, date, type, amount, price });
+  await loadTradePoints();
+  drawCharts(document.getElementById("periodSelector").value);
+}
+
+// 売買ポイントを削除
+async function deleteTradePoint() {
+  const course = document.getElementById("courseSelect").value;
+  const date = document.getElementById("tradeDate").value;
+  const docId = `${course}_${date}`;
+  await tradesRef.doc(docId).delete();
+  await loadTradePoints();
+  drawCharts(document.getElementById("periodSelector").value);
+}
+
+// Firestoreから売買ポイントを読み込む
+async function loadTradePoints() {
+  const snapshot = await tradesRef.get();
+  tradePoints.GLD = [];
+  tradePoints.SPXL = [];
+
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    if (tradePoints[data.course]) {
+      tradePoints[data.course].push({
+        date: data.date,
+        type: data.type,
+        amount: data.amount,
+        price: data.price
+      });
+    }
+  });
+}
+
+// グラフ描画
+function drawCharts(period) {
+  const gldData = tradePoints.GLD.map(tp => ({
+    x: tp.date,
+    y: tp.price
+  }));
+
+  const spxlData = tradePoints.SPXL.map(tp => ({
+    x: tp.date,
+    y: tp.price
+  }));
+
+  const config = (label, data, color) => ({
+    type: 'line',
+    data: {
+      datasets: [{
+        label: label,
+        data: data,
+        borderColor: color,
+        backgroundColor: color + '33',
+        tension: 0.3
+      }]
+    },
+    options: {
+      parsing: false,
+      responsive: true,
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'day' },
+          title: { display: true, text: '日付' }
+        },
+        y: {
+          beginAtZero: false,
+          title: { display: true, text: '価格（USD）' }
+        }
+      },
+      plugins: {
+        legend: { display: true }
+      }
+    }
   });
 
-  document.getElementById("nameInput").value = "";
-  document.getElementById("priceInput").value = "";
-  document.getElementById("stockInput").value = "";
+  if (window.gldChartInstance) window.gldChartInstance.destroy();
+  if (window.spxlChartInstance) window.spxlChartInstance.destroy();
 
-  saveData();
+  window.gldChartInstance = new Chart(
+    document.getElementById("gldChart"),
+    config("GLD価格", gldData, "gold")
+  );
+
+  window.spxlChartInstance = new Chart(
+    document.getElementById("spxlChart"),
+    config("SPXL価格", spxlData, "red")
+  );
 }
 
-function sellItem(index) {
-  const product = getSortedProducts()[index];
-  if (product.stock > 0) {
-    product.stock--;
-    product.sold++;
-    saveData();
-  } else {
-    alert(`${product.name} の在庫がありません`);
-  }
-}
-
-function undoSale(index) {
-  const product = getSortedProducts()[index];
-  if (product.sold > 0) {
-    product.stock++;
-    product.sold--;
-    saveData();
-  } else {
-    alert(`${product.name} はまだ売れていません`);
-  }
-}
-
-function addStock(index) {
-  const product = getSortedProducts()[index];
-  const amount = prompt(`${product.name} に何個補充しますか？`);
-  const num = parseInt(amount);
-  if (!isNaN(num) && num > 0) {
-    product.stock += num;
-    saveData();
-  } else {
-    alert("正しい数値を入力してください");
-  }
-}
-
-function returnItem(index) {
-  const product = getSortedProducts()[index];
-  if (product.stock > 0) {
-    product.stock--;
-    saveData();
-  } else {
-    alert(`${product.name} の在庫はもうありません`);
-  }
-}
-
-function deleteItem(index) {
-  const product = getSortedProducts()[index];
-  const pos = products.findIndex(p => p === product);
-  const ok = confirm(`${product.name} を削除しますか？`);
-  if (ok) {
-    products.splice(pos, 1);
-    saveData();
-  }
-}
-
-function moveUp(index) {
-  const sorted = getSortedProducts();
-  if (index === 0) return;
-  const above = sorted[index - 1];
-  const current = sorted[index];
-  [above.order, current.order] = [current.order, above.order];
-  saveData();
-}
-
-function moveDown(index) {
-  const sorted = getSortedProducts();
-  if (index >= sorted.length - 1) return;
-  const below = sorted[index + 1];
-  const current = sorted[index];
-  [below.order, current.order] = [current.order, below.order];
-  saveData();
-}
-
-function updateTotalSales() {
-  let totalAmount = 0;
-  let totalItems = 0;
-
-  products.forEach(product => {
-    totalAmount += product.price * product.sold;
-    totalItems += product.sold;
-  });
-
-  document.getElementById("totalSalesDisplay").textContent =
-    `売上合計金額：${totalAmount.toLocaleString()} 円｜売上個数：${totalItems.toLocaleString()} 個`;
-}
-
-window.addEventListener("DOMContentLoaded", () => {
-  loadInitialData();
+// 表示期間変更時にグラフを更新
+document.getElementById("periodSelector").addEventListener("change", (e) => {
+  drawCharts(e.target.value);
 });
+
+// 初期読み込み
+(async () => {
+  await loadTradePoints();
+  drawCharts("1m");
+})();

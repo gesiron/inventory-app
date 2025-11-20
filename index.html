@@ -1,107 +1,72 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>在庫管理アプリ</title>
-  <style>
-    body {
-      font-size: 14px;
-      font-family: sans-serif;
-      line-height: 1.6;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-      margin: 20px auto;
-    }
-    th, td {
-      padding: 8px;
-      border: 1px solid #ccc;
-    }
-    button {
-      font-size: 13px;
-      padding: 5px 9px;
-      margin: 4px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    input[type="text"],
-    input[type="number"] {
-      font-size: 13px;
-      padding: 4px;
-      margin: 4px;
-    }
-    #totalSalesDisplay {
-      margin-top: 16px;
-      font-weight: bold;
-      font-size: 13px;
-      text-align: center;
-    }
-    h1, h2 {
-      text-align: center;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>PayPayポイント運用グラフ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
 </head>
 <body>
-  <h1>在庫管理アプリ</h1>
+  <h1>PayPayポイント運用グラフ</h1>
 
-  <h2>新しい商品を追加</h2>
-  <div style="text-align: center;">
-    <input type="text" id="nameInput" placeholder="商品名">
-    <input type="number" id="priceInput" placeholder="値段（円）">
-    <input type="number" id="stockInput" placeholder="在庫数">
-    <button onclick="addProduct()">追加する</button>
+  <div class="selector">
+    <label for="periodSelector">表示期間：</label>
+    <select id="periodSelector">
+      <option value="1m">1ヶ月</option>
+      <option value="3m">3ヶ月</option>
+      <option value="1y">1年</option>
+      <option value="3y">3年</option>
+      <option value="5y">5年</option>
+    </select>
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>商品名</th>
-        <th>値段（円）</th>
-        <th>在庫数</th>
-        <th>売上数</th>
-        <th>売上金額</th>
-        <th>操作</th>
-      </tr>
-    </thead>
-    <tbody id="inventory-body"></tbody>
-  </table>
+  <div class="form-section">
+    <h3>売買ポイントの追加・編集・削除</h3>
+    <label>コース：</label>
+    <select id="courseSelect">
+      <option value="GLD">金コース（GLD）</option>
+      <option value="SPXL">チャレンジコース（SPXL）</option>
+    </select>
+    <label>日付：</label>
+    <input type="date" id="tradeDate">
+    <label>種類：</label>
+    <select id="tradeType">
+      <option value="buy">買い</option>
+      <option value="sell">売り</option>
+    </select>
+    <label>金額：</label>
+    <input type="number" id="tradeAmount" placeholder="例: 1000">
+    <button onclick="addOrUpdateTradePoint()">追加/更新</button>
+    <button onclick="deleteTradePoint()">削除</button>
+  </div>
 
-  <p id="totalSalesDisplay">売上合計金額：0 円｜売上個数：0 個</p>
+  <div class="form-section">
+    <h3>ETF価格の取得</h3>
+    <label>ETFシンボル：</label>
+    <input type="text" id="symbolInput" placeholder="例: SPY, GLD, SPXL">
+    <button onclick="showPrice()">価格を取得</button>
+    <div id="priceResult"></div>
+  </div>
 
-  <!-- ☁️ Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyDJsB49meMEzMelis-KhA9G73yfNMKmcHg",
-      authDomain: "zai-ko-web.firebaseapp.com",
-      databaseURL: "https://zai-ko-web-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "zai-ko-web",
-      storageBucket: "zai-ko-web.firebaseapp.com",
-      messagingSenderId: "553417294794",
-      appId: "1:553417294794:web:ee17380605c20f9177c533"
-    };
+  <section>
+    <h2>金コース（GLD）</h2>
+    <div class="chart-container">
+      <canvas id="gldChart"></canvas>
+    </div>
+  </section>
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+  <section>
+    <h2>チャレンジコース（SPXL）</h2>
+    <div class="chart-container">
+      <canvas id="spxlChart"></canvas>
+    </div>
+  </section>
 
-    // script.js と連携する関数定義
-    window.firebaseDB = db;
-    window.firebaseRef = function (path) {
-      return db.ref(path);
-    };
-    window.firebaseSet = function (ref, data) {
-      return ref.set(data);
-    };
-    window.firebaseOnValue = function (ref, callback) {
-      return ref.on("value", callback);
-    };
-  </script>
-
-  <!-- 📦 アプリ本体 -->
   <script src="script.js"></script>
 </body>
 </html>
